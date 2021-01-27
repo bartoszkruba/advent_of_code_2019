@@ -2,26 +2,54 @@ const fs = require('fs')
 
 const inputs = fs.readFileSync('puzzle_inputs.txt').toString().split(',').map(v => +v)
 
-function find_solution2(inputs) {
-    inputs[1] = 12
-    inputs[2] = 2
+function compute(memory) {
+    const instructions = {
+        99: {
+            parameterCount: 0,
+            callback: (memory, params) => 'finish'
+        },
+        1: {
+            parameterCount: 3,
+            callback: (memory, params) => memory[params[2]] = memory[params[0]] + memory[params[1]]
+        },
+        2: {
+            parameterCount: 3,
+            callback: (memory, params) => memory[params[2]] = memory[params[0]] * memory[params[1]]
+        }
+    }
 
     let i = 0
     while (true) {
-        const instruction = inputs[i]
+        const {parameterCount, callback} = instructions[memory[i]]
 
-        if (instruction == 99) break
+        const result = callback(memory, memory.slice(i + 1, i + 1 + parameterCount))
 
-        const pos1 = inputs[i + 1]
-        const pos2 = inputs[i + 2]
-        const pos3 = inputs[i + 3]
+        if (result == 'finish')
+            break
 
-        inputs[pos3] = instruction == 1 ? inputs[pos1] + inputs[pos2] : inputs[pos1] * inputs[pos2]
-
-        i += 4
+        i += parameterCount + 1
     }
 
-    return inputs[0]
+    return memory[0]
 }
 
-console.log('Part One Solution: ' + find_solution2(inputs.map(v => v)))
+function find_solution1(inputs) {
+    inputs[1] = 12
+    inputs[2] = 2
+
+    return compute(inputs)
+}
+
+function find_solution2(inputs) {
+    for (let i = 0; i < 100; i++) {
+        for (let j = 0; j < 100; j++) {
+            inputs[1] = i
+            inputs[2] = j
+
+            if (compute(inputs.map(v => v)) == 19690720) return 100 * i + j
+        }
+    }
+}
+
+console.log('Part One Solution: ' + find_solution1(inputs.map(v => v)))
+console.log('Part Two Solution: ' + find_solution2(inputs))
