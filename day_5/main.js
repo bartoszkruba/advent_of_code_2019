@@ -5,5 +5,14 @@ const inputs = fs.readFileSync('puzzle_inputs.txt').toString().split(',').map(v 
 
 const computer = new IntcodeComputer()
 
-inputs[1] = 1
-console.log(computer.compute(inputs))
+const findSolutions = async (inputs, computer) => {
+    let output = await computer.compute(inputs.map(v => v))
+    const solution1 = output[output.length - 1]
+
+    return {solution1}
+}
+
+findSolutions(inputs, computer).then(({solution1}) => {
+    console.log('Part One Solution: ' + solution1)
+    process.exit()
+})

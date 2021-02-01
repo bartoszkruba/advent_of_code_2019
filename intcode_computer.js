@@ -1,6 +1,18 @@
 const readline = require('readline')
 
+const rl = readline.createInterface({ input: process.stdin , output: process.stdout });
+
+const getLine = (function () {
+    const getLineGen = (async function* () {
+        for await (const line of rl) {
+            yield line;
+        }
+    })();
+    return async () => ((await getLineGen.next()).value);
+})();
+
 class IntcodeComputer {
+
     instructions = {
         99: {
             parameterCount: 0,
@@ -16,18 +28,18 @@ class IntcodeComputer {
         },
         3: {
             parameterCount: 1,
-            callback: (memory, params) => {
-                console.log('input:')
-                memory[params[0]] = readline() 
+            callback: async (memory, params) => {
+                console.log('input: ')
+                memory[params[0]] = +(await getLine())
             }
         },
         4: {
-            parameterCount: 0,
+            parameterCount: 1,
             callback: (memory, params, output) => output.push(params[0])
         }
     }
 
-    compute(memory) {
+    async compute(memory) {
         const output = []
 
         let i = 0
@@ -40,13 +52,12 @@ class IntcodeComputer {
             optcode = optcode.padStart(2 + parameterCount, '0')
             const parameterModes = optcode.slice(0, -2).split('').reverse().map(v => +v)
 
-            if (instruction != 3 || instruction != 4)
+            if (instruction != 4)
                 parameterModes[parameterModes.length - 1] = 1
 
             const params = []
 
             for (let j = 0; j < parameterCount; j++) {
-                const v = memory[i + j + 1]
                 switch (parameterModes[j]) {
                     case 0:
                         params.push(memory[memory[i + j + 1]])
@@ -57,7 +68,7 @@ class IntcodeComputer {
                 }
             }
 
-            if (callback(memory, params, output) == 'finish')
+            if (await callback(memory, params, output) == 'finish')
                 break
 
             i += parameterCount + 1
