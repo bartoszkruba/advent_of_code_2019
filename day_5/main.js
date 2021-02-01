@@ -6,13 +6,15 @@ const inputs = fs.readFileSync('puzzle_inputs.txt').toString().split(',').map(v 
 const computer = new IntcodeComputer()
 
 const findSolutions = async (inputs, computer) => {
-    let output = await computer.compute(inputs.map(v => v))
-    const solution1 = output[output.length - 1]
+    const solution1 = (await computer.compute(inputs.map(v => v), [1])).pop()
 
-    return {solution1}
+    const solution2 = (await computer.compute(inputs.map(v => v), [5])).pop()
+
+    return {solution1, solution2}
 }
 
-findSolutions(inputs, computer).then(({solution1}) => {
+findSolutions(inputs, computer).then(({solution1, solution2}) => {
     console.log('Part One Solution: ' + solution1)
+    console.log('Part Two Solution: ' + solution2)
     process.exit()
 })
