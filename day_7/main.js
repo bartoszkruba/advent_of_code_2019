@@ -4,6 +4,10 @@ const IntcodeComputer = require('../intcode_computer')
 const inputs = fs.readFileSync('puzzle_inputs.txt').toString().split(',').map(v => +v)
 const computer = new IntcodeComputer()
 
+function sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 const permutator = (inputArr) => {
     let result = [];
 
@@ -29,7 +33,7 @@ const findSolutions = async (inputs, computer) => {
 
     for (permutation of permutator([0, 1, 2, 3, 4])) {
         let input = 0
-        
+
         for (phase of permutation) {
             const output = await computer.compute(inputs.map(v => v), [phase, input])
             input = output.pop()
@@ -39,10 +43,81 @@ const findSolutions = async (inputs, computer) => {
 
     const solution1 = highest
 
-    return {solution1}
+    highest = 0
+
+    for (permutation of permutator([5, 6, 7, 8, 9])) {
+        const computerA = new IntcodeComputer()
+        const computerB = new IntcodeComputer()
+        const computerC = new IntcodeComputer()
+        const computerD = new IntcodeComputer()
+        const computerE = new IntcodeComputer()
+
+        let bStarted = false
+        let cStarted = false
+        let dStarted = false
+        let eStarted = false
+
+        computerA.inputCallback = async () => {
+            if (!bStarted) {
+                computerB.compute(inputs.map(v => v), [permutation[1], computerA.output.pop()])
+                bStarted = true
+            }
+
+            while (!computerE.output.length) { await sleep(1) }
+            return computerE.output.pop()
+        }
+
+        computerB.inputCallback = async () => {
+            if (!cStarted) {
+                computerC.compute(inputs.map(v => v), [permutation[2], computerB.output.pop()])
+                cStarted = true
+            }
+
+            while (!computerA.output.length) { await sleep(1) }
+            return computerA.output.pop()
+        }
+
+        computerC.inputCallback = async () => {
+            if (!dStarted) {
+                computerD.compute(inputs.map(v => v), [permutation[3], computerC.output.pop()])
+                dStarted = true
+            }
+
+            while (!computerB.output.length) { await sleep(1) }
+            return computerB.output.pop()
+        }
+
+        computerD.inputCallback = async () => {
+            if (!eStarted) {
+                computerE.compute(inputs.map(v => v), [permutation[4], computerD.output.pop()])
+                eStarted = true
+            }
+
+            while (!computerC.output.length) { await sleep(1) }
+            return computerC.output.pop()
+        }
+
+        computerE.inputCallback = async () => {
+            while (!computerD.output.length) { await sleep(1) }
+            return computerD.output.pop()
+        }
+
+        await computerA.compute(inputs.map(v => v), [permutation[0], 0])
+
+        while (!computerE.output.length) { await sleep(1) }
+
+        const result = computerE.output.pop()
+
+        if (highest < result) highest = result
+    }
+
+    const solution2 = highest
+
+    return { solution1, solution2 }
 }
 
-findSolutions(inputs, computer).then(({solution1}) => {
+findSolutions(inputs, computer).then(({ solution1, solution2 }) => {
     console.log('Part One Solution: ' + solution1)
+    console.log('Part Two Solution: ' + solution2)
     process.exit()
 })

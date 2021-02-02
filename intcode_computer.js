@@ -13,6 +13,9 @@ const getLine = (function () {
 
 class IntcodeComputer {
     inputs = []
+    output = []
+
+    inputCallback = getLine
 
     instructions = {
         99: {
@@ -35,8 +38,7 @@ class IntcodeComputer {
             writes: true,
             callback: async (memory, params) => {
                 if (this.inputs.length === 0) {
-                    console.log('input: ')
-                    memory[params[0]] = +(await getLine())
+                    memory[params[0]] = +(await this.inputCallback())
                 } else {
                     memory[params[0]] = this.inputs.shift()
                 }
@@ -45,37 +47,36 @@ class IntcodeComputer {
         4: {
             parameterCount: 1,
             writes: false,
-            callback: (memory, params, output) => output.push(params[0])
+            callback: (memory, params) => this.output.push(params[0])
         },
         5: {
             parameterCount: 2,
             writes: false,
-            callback: (memory, params, output) => {
+            callback: (memory, params) => {
                 if (params[0] !== 0) return 'jump:' + params[1]
             }
         },
         6: {
             parameterCount: 2,
             writes: false,
-            callback: (memory, params, output) => {
+            callback: (memory, params) => {
                 if (params[0] === 0) return 'jump:' + params[1]
             }
         },
         7: {
             parameterCount: 3,
             writes: true,
-            callback: (memory, params, output) => params[0] < params[1] ? memory[params[2]] = 1 : memory[params[2]] = 0
+            callback: (memory, params) => params[0] < params[1] ? memory[params[2]] = 1 : memory[params[2]] = 0
         },
         8: {
             parameterCount: 3,
             writes: true,
-            callback: (memory, params, output) => params[0] === params[1] ? memory[params[2]] = 1 : memory[params[2]] = 0
+            callback: (memory, params) => params[0] === params[1] ? memory[params[2]] = 1 : memory[params[2]] = 0
         }
     }
 
     async compute(memory, inputs = []) {
         this.inputs = inputs
-        const output = []
 
         let i = 0
         while (true) {
@@ -103,7 +104,7 @@ class IntcodeComputer {
                 }
             }
 
-            const result = await callback(memory, params, output)
+            const result = await callback(memory, params)
 
             if (result == 'finish')
                 break
@@ -115,7 +116,7 @@ class IntcodeComputer {
             i += parameterCount + 1
         }
 
-        return output
+        return this.output
     }
 }
 
