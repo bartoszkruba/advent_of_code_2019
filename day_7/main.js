@@ -45,6 +45,16 @@ const findSolutions = async (inputs, computer) => {
 
     highest = 0
 
+    const setupInputCallback = (computer, previous, next = null, nextPhase = null) => {
+        computer.inputCallback = async () => {
+            if (next && !next.computing) {
+                next.compute(inputs.map(v => v), [nextPhase, computer.output.pop()])
+            }
+            while (!previous.output.length) await sleep(1)
+            return previous.output.pop()
+        }
+    }
+
     for (permutation of permutator([5, 6, 7, 8, 9])) {
         const computerA = new IntcodeComputer()
         const computerB = new IntcodeComputer()
@@ -52,55 +62,11 @@ const findSolutions = async (inputs, computer) => {
         const computerD = new IntcodeComputer()
         const computerE = new IntcodeComputer()
 
-        let bStarted = false
-        let cStarted = false
-        let dStarted = false
-        let eStarted = false
-
-        computerA.inputCallback = async () => {
-            if (!bStarted) {
-                computerB.compute(inputs.map(v => v), [permutation[1], computerA.output.pop()])
-                bStarted = true
-            }
-
-            while (!computerE.output.length) { await sleep(1) }
-            return computerE.output.pop()
-        }
-
-        computerB.inputCallback = async () => {
-            if (!cStarted) {
-                computerC.compute(inputs.map(v => v), [permutation[2], computerB.output.pop()])
-                cStarted = true
-            }
-
-            while (!computerA.output.length) { await sleep(1) }
-            return computerA.output.pop()
-        }
-
-        computerC.inputCallback = async () => {
-            if (!dStarted) {
-                computerD.compute(inputs.map(v => v), [permutation[3], computerC.output.pop()])
-                dStarted = true
-            }
-
-            while (!computerB.output.length) { await sleep(1) }
-            return computerB.output.pop()
-        }
-
-        computerD.inputCallback = async () => {
-            if (!eStarted) {
-                computerE.compute(inputs.map(v => v), [permutation[4], computerD.output.pop()])
-                eStarted = true
-            }
-
-            while (!computerC.output.length) { await sleep(1) }
-            return computerC.output.pop()
-        }
-
-        computerE.inputCallback = async () => {
-            while (!computerD.output.length) { await sleep(1) }
-            return computerD.output.pop()
-        }
+        setupInputCallback(computerA, computerE, computerB, permutation[1])
+        setupInputCallback(computerB, computerA, computerC, permutation[2])
+        setupInputCallback(computerC, computerB, computerD, permutation[3])
+        setupInputCallback(computerD, computerC, computerE, permutation[4])
+        setupInputCallback(computerE, computerD)
 
         await computerA.compute(inputs.map(v => v), [permutation[0], 0])
 

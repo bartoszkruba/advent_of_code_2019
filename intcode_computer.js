@@ -12,6 +12,7 @@ const getLine = (function () {
 })();
 
 class IntcodeComputer {
+    computing = false
     inputs = []
     output = []
 
@@ -76,6 +77,7 @@ class IntcodeComputer {
     }
 
     async compute(memory, inputs = []) {
+        this.computing = true
         this.inputs = inputs
 
         let i = 0
@@ -116,6 +118,7 @@ class IntcodeComputer {
             i += parameterCount + 1
         }
 
+        this.computing = false
         return this.output
     }
 }
