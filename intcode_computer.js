@@ -1,3 +1,4 @@
+const { timeStamp } = require('console');
 const readline = require('readline')
 
 const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
@@ -8,10 +9,14 @@ const getLine = (function () {
             yield line;
         }
     })();
-    return async () => ((await getLineGen.next()).value);
+    return async () => {
+        console.log('input')
+        return ((await getLineGen.next()).value)
+    };
 })();
 
 class IntcodeComputer {
+    relativeBase = 0
     computing = false
     inputs = []
     output = []
@@ -32,7 +37,9 @@ class IntcodeComputer {
         2: {
             parameterCount: 3,
             writes: true,
-            callback: (memory, params) => memory[params[2]] = params[0] * params[1]
+            callback: (memory, params) => {
+                memory[params[2]] = params[0] * params[1]
+            }
         },
         3: {
             parameterCount: 1,
@@ -73,12 +80,18 @@ class IntcodeComputer {
             parameterCount: 3,
             writes: true,
             callback: (memory, params) => params[0] === params[1] ? memory[params[2]] = 1 : memory[params[2]] = 0
+        },
+        9: {
+            parameterCount: 1,
+            writes: false,
+            callback: (memory, params) => this.relativeBase += params[0]
         }
     }
 
     async compute(memory, inputs = []) {
         this.computing = true
         this.inputs = inputs
+        this.relativeBase = 0
 
         let i = 0
         while (true) {
@@ -90,20 +103,31 @@ class IntcodeComputer {
             optcode = optcode.padStart(2 + parameterCount, '0')
             const parameterModes = optcode.slice(0, -2).split('').reverse().map(v => +v)
 
-            if (writes)
-                parameterModes[parameterModes.length - 1] = 1
+            if (writes) {
+                parameterModes[parameterModes.length - 1] = parameterModes.slice(-1)[0] ? parameterModes.slice(-1)[0] : 1
+            }
 
             const params = []
 
             for (let j = 0; j < parameterCount; j++) {
+                let param;
                 switch (parameterModes[j]) {
                     case 0:
-                        params.push(memory[memory[i + j + 1]])
+                        param = memory[memory[i + j + 1]]
                         break
                     case 1:
-                        params.push(memory[i + j + 1])
+                        param = memory[i + j + 1]
+                        break
+                    case 2:
+                        if (writes && params.length == (parameterModes.length - 1))
+                            param = memory[i + j + 1] + this.relativeBase
+                        else
+                            param = memory[memory[i + j + 1] + this.relativeBase]
                         break
                 }
+
+                if (param === undefined) param = 0
+                params.push(param)
             }
 
             const result = await callback(memory, params)
