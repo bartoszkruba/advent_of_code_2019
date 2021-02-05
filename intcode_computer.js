@@ -32,23 +32,23 @@ class IntcodeComputer {
         1: {
             parameterCount: 3,
             writes: true,
-            callback: (memory, params) => memory[params[2]] = params[0] + params[1]
+            callback: (memory, params, writePos) => memory[writePos] = params[0] + params[1]
         },
         2: {
             parameterCount: 3,
             writes: true,
-            callback: (memory, params) => {
-                memory[params[2]] = params[0] * params[1]
+            callback: (memory, params, writePos) => {
+                memory[writePos] = params[0] * params[1]
             }
         },
         3: {
             parameterCount: 1,
             writes: true,
-            callback: async (memory, params) => {
+            callback: async (memory, params, writePos) => {
                 if (this.inputs.length === 0) {
-                    memory[params[0]] = +(await this.inputCallback())
+                    memory[writePos] = +(await this.inputCallback())
                 } else {
-                    memory[params[0]] = this.inputs.shift()
+                    memory[writePos] = this.inputs.shift()
                 }
             }
         },
@@ -74,12 +74,12 @@ class IntcodeComputer {
         7: {
             parameterCount: 3,
             writes: true,
-            callback: (memory, params) => params[0] < params[1] ? memory[params[2]] = 1 : memory[params[2]] = 0
+            callback: (memory, params, writePos) => params[0] < params[1] ? memory[writePos] = 1 : memory[writePos] = 0
         },
         8: {
             parameterCount: 3,
             writes: true,
-            callback: (memory, params) => params[0] === params[1] ? memory[params[2]] = 1 : memory[params[2]] = 0
+            callback: (memory, params, writePos) => params[0] === params[1] ? memory[writePos] = 1 : memory[writePos] = 0
         },
         9: {
             parameterCount: 1,
@@ -103,8 +103,18 @@ class IntcodeComputer {
             optcode = optcode.padStart(2 + parameterCount, '0')
             const parameterModes = optcode.slice(0, -2).split('').reverse().map(v => +v)
 
+            let writePos = undefined
             if (writes) {
-                parameterModes[parameterModes.length - 1] = parameterModes.slice(-1)[0] ? parameterModes.slice(-1)[0] : 1
+                const mode = parameterModes.slice(-1)[0]
+                switch (mode) {
+                    case 0:
+                        writePos = memory[i + parameterModes.length]
+                        break
+                    case 2:
+                        writePos = memory[i + parameterModes.length] + this.relativeBase
+                        break
+                }
+                if (!writePos) writePos = 0
             }
 
             const params = []
@@ -119,10 +129,7 @@ class IntcodeComputer {
                         param = memory[i + j + 1]
                         break
                     case 2:
-                        if (writes && params.length == (parameterModes.length - 1))
-                            param = memory[i + j + 1] + this.relativeBase
-                        else
-                            param = memory[memory[i + j + 1] + this.relativeBase]
+                        param = memory[memory[i + j + 1] + this.relativeBase]
                         break
                 }
 
@@ -130,7 +137,7 @@ class IntcodeComputer {
                 params.push(param)
             }
 
-            const result = await callback(memory, params)
+            const result = await callback(memory, params, writePos)
 
             if (result == 'finish')
                 break
