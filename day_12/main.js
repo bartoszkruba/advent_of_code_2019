@@ -3,7 +3,7 @@ const fs = require('fs')
 const positions = {}
 const velocities = {}
 
-fs.readFileSync('test_inputs.txt').toString().split('\n').forEach((line, indx) => {
+fs.readFileSync('puzzle_inputs.txt').toString().split('\n').forEach((line, indx) => {
     const position = []
 
     line.replace(/>| |<|=|x|y|z/g, '').split(',').forEach((v, indx) => position[indx] = +v)
@@ -17,6 +17,8 @@ const generatePairs = arr => {
     for (let i = 0; i < arr.length; i++) for (let j = 1 + i; j < arr.length; j++) pairs.push([arr[i], arr[j]])
     return pairs
 }
+
+const indexOfAll = (arr, val) => arr.reduce((acc, el, i) => (el === val ? [...acc, i] : acc), []);
 
 const timeStep = (positions, velocities, pairs) => {
     for (pair of pairs) {
@@ -78,15 +80,39 @@ const findSolutions = (positions, velocities) => {
     const history = []
     for (let i = 0; i < Object.keys(positions).length * 3; i++) history.push([])
 
-    for (let i = 0; i < 1000; i++) {
+    let total = 0
+    for (let i = 0; i < 100_000; i++) {
         timeStep(positionsCopy, velocitiesCopy, pairs)
 
-        let i = 0
         for (let key in positionsCopy)
             for (let j = 0; j < positions[0].length; j++) history[+key * 3 + j].push(positionsCopy[key][j])
+
+        if (i === 999) {
+            for (key in positions) {
+                let potential = 0
+                let kinetic = 0
+                for (let i = 0; i < 3; i++) {
+                    potential += Math.abs(positionsCopy[key][i])
+                    kinetic += Math.abs(velocitiesCopy[key][i])
+
+                }
+
+                total += potential * kinetic
+            }
+        }
     }
 
-    let patternLengths = history.map(h => findPatternLength(h))
+    const solution1 = total
+
+    let patternLengths = []
+    for (let h of history) {
+        const indexes = indexOfAll(h, h[0])
+        const pattern = []
+        for (let i = 1; i < indexes.length; i++) pattern.push(indexes[i] - indexes[i - 1])
+
+        patternLengths.push(indexes[findPatternLength(pattern)])
+    }
+
     let step = patternLengths.pop()
     let i = step
 
@@ -98,27 +124,10 @@ const findSolutions = (positions, velocities) => {
             }
             return true
         })
-        if (patternLengths.length > 0)
-            i += step
+
+        i += step
     }
-    console.log(i)
-
-    let total = 0
-
-    for (key in positions) {
-        let potential = 0
-        let kinetic = 0
-        for (let i = 0; i < 3; i++) {
-            potential += Math.abs(positionsCopy[key][i])
-            kinetic += Math.abs(velocitiesCopy[key][i])
-
-        }
-
-        total += potential * kinetic
-    }
-
-    const solution1 = total
-
+    console.log(step.toLocaleString('fullwide', { useGrouping: false }))
 
     return { solution1 }
 }
